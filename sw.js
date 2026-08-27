@@ -1,6 +1,8 @@
 // Service Worker de Frost Seahorse
-// Sube la versión del cache cada vez que publiques cambios importantes en el juego.
-const CACHE_VERSION = 'frost-seahorse-v2';
+// IMPORTANTE: sube este número CADA VEZ que publiques cambios (junto con
+// APP_VERSION en index.html). Esto es lo que dispara la limpieza automática
+// de caché en el celular de los usuarios sin que tengan que borrar cookies.
+const CACHE_VERSION = 'frost-seahorse-v3';
 const APP_SHELL = [
   './',
   './index.html',

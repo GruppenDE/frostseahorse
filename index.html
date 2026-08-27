@@ -3208,6 +3208,61 @@
     const DISMISS_KEY = 'frostSeahorsePwaDismissedAt';
     let deferredPrompt = null;
 
+    // ============================================================
+    // 0) CHEQUEO DE VERSIÓN CON AUTO-LIMPIEZA (arregla el problema
+    //    de "hago F5 y no veo los cambios en el celular").
+    //
+    //    En vez de depender de los tiempos internos del Service
+    //    Worker (que en móvil a veces se queda "atascado" controlando
+    //    la página vieja incluso tras un F5), comparamos un número de
+    //    versión simple. Si detectamos que cambió, desregistramos el
+    //    SW viejo, borramos TODO su caché, y recargamos una vez.
+    //    Esto logra el mismo efecto que "borrar cookies", pero de
+    //    forma automática y sin que el usuario tenga que hacer nada.
+    //
+    //    IMPORTANTE: cada vez que subas cambios importantes al juego,
+    //    sube este número (y el CACHE_VERSION de sw.js, aunque no es
+    //    obligatorio que coincidan exactamente).
+    // ============================================================
+    const APP_VERSION = 'v3';
+    const VERSION_KEY = 'frostSeahorseAppVersion';
+
+    function forceFreshStart(callback) {
+        const tasks = [];
+        if ('serviceWorker' in navigator) {
+            tasks.push(
+                navigator.serviceWorker.getRegistrations()
+                    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+                    .catch(() => {})
+            );
+        }
+        if ('caches' in window) {
+            tasks.push(
+                caches.keys()
+                    .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+                    .catch(() => {})
+            );
+        }
+        Promise.all(tasks).finally(callback);
+    }
+
+    let versionMismatch = false;
+    try {
+        const storedVersion = localStorage.getItem(VERSION_KEY);
+        if (storedVersion && storedVersion !== APP_VERSION) {
+            versionMismatch = true;
+        }
+        localStorage.setItem(VERSION_KEY, APP_VERSION);
+    } catch (e) {
+        // localStorage no disponible (modo privado, etc.): seguimos sin bloquear nada
+    }
+
+    if (versionMismatch) {
+        // Hay una versión nueva publicada: limpiamos todo y recargamos una sola vez.
+        forceFreshStart(() => window.location.reload());
+        return; // no seguimos ejecutando el resto del script en este ciclo
+    }
+
     // 1) Registrar el service worker (necesario para poder instalar la PWA)
     //    updateViaCache: 'none' evita que el navegador cachee el propio sw.js,
     //    para que detecte cambios de versión de inmediato en cada carga.
