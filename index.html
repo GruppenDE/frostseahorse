@@ -44,12 +44,9 @@
             border-radius: 10px;
             overflow: hidden;
             background: linear-gradient(to bottom, #050b14, #0f172a);
-            /* El tamaño interno del juego se mantiene siempre en 400x600
-               (todos los paneles, HUD, etc. están posicionados en base a
-               eso). En pantallas más chicas, este contenedor se ESCALA
-               como bloque completo vía JS (ver script "responsiveScale"
-               al final del body), en vez de recalcular cada elemento. */
-            transform-origin: center center;
+            /* El propio juego redimensiona este contenedor (y el canvas)
+               en tiempo real vía JS según la pantalla, ver resizeGame()
+               más abajo. El 400x600 de acá es solo el valor inicial. */
             flex-shrink: 0;
         }
         canvas {
@@ -3254,7 +3251,7 @@
     //    sube este número (y el CACHE_VERSION de sw.js, aunque no es
     //    obligatorio que coincidan exactamente).
     // ============================================================
-    const APP_VERSION = 'v5';
+    const APP_VERSION = 'v6';
     const VERSION_KEY = 'frostSeahorseAppVersion';
 
     function forceFreshStart(callback) {
@@ -3433,45 +3430,6 @@
             installBtn.textContent = 'Entendido';
             setTimeout(showBanner, 1200);
         }
-    }
-})();
-</script>
-
-<!-- Escalado responsivo: mantiene el juego (400x600 internos) intacto,
-     pero lo ajusta como bloque completo para que quepa en cualquier
-     pantalla sin cortarse ni desbordarse, tanto en móvil como en desktop. -->
-<script>
-(function () {
-    const container = document.getElementById('game-container');
-    const GAME_WIDTH = 400;
-    const GAME_HEIGHT = 600;
-    const EDGE_MARGIN = 12; // pequeño respiro para que no toque los bordes de la pantalla
-
-    function applyResponsiveScale() {
-        // innerWidth/innerHeight (en vez de vw/vh) para reflejar el alto
-        // real disponible en móvil, incluyendo cuando la barra de
-        // direcciones del navegador aparece/desaparece.
-        const availableWidth = window.innerWidth - EDGE_MARGIN * 2;
-        const availableHeight = window.innerHeight - EDGE_MARGIN * 2;
-
-        const scale = Math.min(
-            availableWidth / GAME_WIDTH,
-            availableHeight / GAME_HEIGHT,
-            1 // nunca lo agrandamos más allá de su tamaño original de diseño
-        );
-
-        container.style.transform = `scale(${scale})`;
-    }
-
-    applyResponsiveScale();
-    window.addEventListener('resize', applyResponsiveScale);
-    window.addEventListener('orientationchange', () => setTimeout(applyResponsiveScale, 50));
-
-    // En móvil, la barra de direcciones se oculta/muestra al hacer scroll,
-    // lo que cambia window.innerHeight sin disparar siempre "resize".
-    // visualViewport cubre ese caso con más precisión.
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', applyResponsiveScale);
     }
 })();
 </script>
