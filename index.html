@@ -291,6 +291,91 @@
                              0 0 22px rgba(59, 130, 246, 0.5);
             }
         }
+        .record-score-big {
+            display: inline-block;
+            margin: 14px 0 6px;
+            padding: 8px 30px;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-size: clamp(30px, 10vw, 46px);
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1;
+            border-radius: 14px;
+            background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.16) 0%, rgba(11, 19, 41, 0.35) 75%);
+            border: 1px solid rgba(125, 211, 252, 0.55);
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.25),
+                        inset 0 0 18px rgba(56, 189, 248, 0.08);
+            animation: recordScorePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                       recordScoreNeon 1.7s ease-in-out 0.55s infinite alternate,
+                       recordScoreFlicker 3.4s linear 0.55s infinite;
+        }
+        .record-score-big.gold {
+            border-color: rgba(253, 224, 71, 0.55);
+            background: radial-gradient(ellipse at center, rgba(253, 224, 71, 0.16) 0%, rgba(11, 19, 41, 0.35) 75%);
+            box-shadow: 0 0 18px rgba(253, 224, 71, 0.25),
+                        inset 0 0 18px rgba(253, 224, 71, 0.08);
+            animation: recordScorePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                       recordScoreNeonGold 1.7s ease-in-out 0.55s infinite alternate,
+                       recordScoreFlicker 3.4s linear 0.55s infinite;
+        }
+        .record-score-label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #7dd3fc;
+            opacity: 0.75;
+            margin-bottom: 4px;
+        }
+        .record-score-big.gold + .record-score-label,
+        .record-score-label.gold {
+            color: #fde047;
+        }
+        @keyframes recordScorePop {
+            0% { transform: scale(0.3); opacity: 0; }
+            65% { transform: scale(1.12); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes recordScoreNeon {
+            0% {
+                color: #7dd3fc;
+                text-shadow: 0 0 6px rgba(125, 211, 252, 0.95),
+                             0 0 16px rgba(56, 189, 248, 0.75),
+                             0 0 32px rgba(56, 189, 248, 0.5),
+                             0 0 50px rgba(56, 189, 248, 0.25);
+            }
+            100% {
+                color: #ffffff;
+                text-shadow: 0 0 8px rgba(255, 255, 255, 0.95),
+                             0 0 22px rgba(56, 189, 248, 0.9),
+                             0 0 42px rgba(56, 189, 248, 0.6),
+                             0 0 65px rgba(56, 189, 248, 0.35);
+            }
+        }
+        @keyframes recordScoreNeonGold {
+            0% {
+                color: #fde047;
+                text-shadow: 0 0 6px rgba(253, 224, 71, 0.95),
+                             0 0 16px rgba(250, 204, 21, 0.75),
+                             0 0 32px rgba(202, 138, 4, 0.5),
+                             0 0 50px rgba(202, 138, 4, 0.25);
+            }
+            100% {
+                color: #fffbe8;
+                text-shadow: 0 0 8px rgba(255, 255, 255, 0.95),
+                             0 0 24px rgba(253, 224, 71, 0.9),
+                             0 0 46px rgba(250, 204, 21, 0.6),
+                             0 0 65px rgba(202, 138, 4, 0.35);
+            }
+        }
+        @keyframes recordScoreFlicker {
+            0%, 100% { opacity: 1; }
+            92% { opacity: 1; }
+            93% { opacity: 0.7; }
+            94% { opacity: 1; }
+            96% { opacity: 0.85; }
+            97% { opacity: 1; }
+        }
         .user-input-group {
             margin-bottom: 15px;
             width: 75%;
@@ -2481,12 +2566,12 @@
         startScreen.style.display = 'flex';
         if (beatWorldRecord) {
             startScreen.querySelector('h1').innerText = "🌍 ¡NUEVO RÉCORD MUNDIAL! 🌍";
-            startScreen.querySelector('p').innerText = `${currentUser}, ¡superaste el récord mundial con ${score} puntos!`;
+            startScreen.querySelector('p').innerHTML = `${currentUser}, ¡superaste el récord mundial!<br><span class="record-score-label gold">Puntuación</span><span class="record-score-big gold">${score}</span>`;
             launchConfetti();
             playSound('applause');
         } else if (isNewRecord) {
             startScreen.querySelector('h1').innerText = "🎉 ¡NUEVO RÉCORD! 🎉";
-            startScreen.querySelector('p').innerText = `${currentUser}, superaste tu marca con: ${score}.`;
+            startScreen.querySelector('p').innerHTML = `${currentUser}, superaste tu marca personal<br><span class="record-score-label">Puntuación</span><span class="record-score-big">${score}</span>`;
             launchConfetti();
             playSound('applause');
         } else {
