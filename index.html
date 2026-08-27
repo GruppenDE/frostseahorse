@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Frost Seahorse</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b1329">
+    <meta name="description" content="Desliza por bloques de hielo realistas, rompe obstáculos y activa el modo Deep Freeze.">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Frost Seahorse">
+    <meta name="mobile-web-app-capable" content="yes">
+
     <style>
         body {
             margin: 0;
@@ -1000,6 +1012,111 @@
             min-height: 16px;
             transition: opacity 0.25s ease;
         }
+
+        /* ===== PWA: banner de instalación ===== */
+        #pwa-install-banner {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translate(-50%, 140%);
+            width: min(360px, 92vw);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid #38bdf8;
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px rgba(56, 189, 248, 0.15);
+            z-index: 9999;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #pwa-install-banner.visible {
+            transform: translate(-50%, 0);
+        }
+        #pwa-install-banner .pwa-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 9px;
+            flex-shrink: 0;
+        }
+        #pwa-install-banner .pwa-text {
+            flex: 1;
+            min-width: 0;
+        }
+        #pwa-install-banner .pwa-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        #pwa-install-banner .pwa-subtitle {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        #pwa-install-banner .pwa-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        #pwa-install-btn {
+            background: linear-gradient(135deg, #38bdf8, #1e3a8a);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #pwa-install-btn:hover { filter: brightness(1.1); }
+        #pwa-dismiss-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 4px 6px;
+        }
+        #pwa-dismiss-btn:hover { color: #f8fafc; }
+
+        /* ===== PWA: insignia "ya instalado" ===== */
+        #pwa-installed-badge {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translate(-50%, 140%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid #22c55e;
+            border-radius: 999px;
+            padding: 9px 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            z-index: 9999;
+            font-size: 12px;
+            font-weight: 600;
+            color: #f8fafc;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #pwa-installed-badge.visible {
+            transform: translate(-50%, 0);
+        }
+        #pwa-installed-badge .pwa-check {
+            color: #22c55e;
+            font-size: 15px;
+        }
+
+        @media (max-width: 480px) {
+            #pwa-install-banner { bottom: 10px; }
+            #pwa-installed-badge { bottom: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -1098,6 +1215,25 @@
     </div>
 
     <canvas id="gameCanvas" width="400" height="600"></canvas>
+</div>
+
+<!-- PWA: banner de instalación -->
+<div id="pwa-install-banner">
+    <img src="icons/icon-192.png" alt="" class="pwa-icon">
+    <div class="pwa-text">
+        <div class="pwa-title" id="pwaInstallTitle">Instala Frost Seahorse</div>
+        <div class="pwa-subtitle" id="pwaInstallSubtitle">Juega más rápido, a pantalla completa y sin conexión.</div>
+    </div>
+    <div class="pwa-actions">
+        <button id="pwa-install-btn">Instalar</button>
+        <button id="pwa-dismiss-btn" aria-label="Cerrar">✕</button>
+    </div>
+</div>
+
+<!-- PWA: insignia "ya instalado" -->
+<div id="pwa-installed-badge">
+    <span class="pwa-check">✔</span>
+    <span>Ya tienes Frost Seahorse instalado</span>
 </div>
 
 <script>
@@ -2971,6 +3107,122 @@
             return false;
         }
     };
+</script>
+
+<!-- PWA: registro del service worker, prompt de instalación y detección de "ya instalado" -->
+<script>
+(function () {
+    const banner = document.getElementById('pwa-install-banner');
+    const badge = document.getElementById('pwa-installed-badge');
+    const installBtn = document.getElementById('pwa-install-btn');
+    const dismissBtn = document.getElementById('pwa-dismiss-btn');
+    const installTitle = document.getElementById('pwaInstallTitle');
+    const installSubtitle = document.getElementById('pwaInstallSubtitle');
+
+    const STORAGE_KEY = 'frostSeahorsePwaInstalled';
+    const DISMISS_KEY = 'frostSeahorsePwaDismissedAt';
+    let deferredPrompt = null;
+
+    // 1) Registrar el service worker (necesario para poder instalar la PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch((err) => {
+                console.warn('No se pudo registrar el service worker:', err);
+            });
+        });
+    }
+
+    function isRunningStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.navigator.standalone === true; // iOS Safari
+    }
+
+    function isIos() {
+        return /iphone|ipad|ipod/i.test(window.navigator.userAgent) && !window.MSStream;
+    }
+
+    function showBanner() {
+        badge.classList.remove('visible');
+        banner.classList.add('visible');
+    }
+    function hideBanner() {
+        banner.classList.remove('visible');
+    }
+    function showInstalledBadge(autoHide) {
+        banner.classList.remove('visible');
+        badge.classList.add('visible');
+        if (autoHide) {
+            setTimeout(() => badge.classList.remove('visible'), 4000);
+        }
+    }
+
+    // 2) Si ya corre como app instalada (standalone), o el navegador confirma
+    //    que ya se instaló antes, avisamos que ya la tienen y no pedimos instalar.
+    if (isRunningStandalone()) {
+        localStorage.setItem(STORAGE_KEY, 'true');
+        showInstalledBadge(true);
+    } else if (localStorage.getItem(STORAGE_KEY) === 'true') {
+        // Se instaló en algún momento pero ahora se abrió desde el navegador normal
+        showInstalledBadge(true);
+    }
+
+    // 3) Capturamos el evento nativo de instalación (Chrome/Edge/Android)
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+
+        if (isRunningStandalone() || localStorage.getItem(STORAGE_KEY) === 'true') {
+            return; // ya instalada, no mostramos el banner de instalar
+        }
+
+        // Respeta si el usuario cerró el banner hace poco (no insistir cada recarga)
+        const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+        const daysSinceDismiss = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
+        if (dismissedAt && daysSinceDismiss < 3) return;
+
+        showBanner();
+    });
+
+    // 4) Click en "Instalar": lanza el prompt nativo del navegador
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+            hideBanner();
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        hideBanner();
+        if (outcome === 'accepted') {
+            localStorage.setItem(STORAGE_KEY, 'true');
+        }
+    });
+
+    // 5) Cerrar el banner manualmente
+    dismissBtn.addEventListener('click', () => {
+        localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        hideBanner();
+    });
+
+    // 6) Evento nativo cuando la instalación se completó con éxito
+    window.addEventListener('appinstalled', () => {
+        localStorage.setItem(STORAGE_KEY, 'true');
+        deferredPrompt = null;
+        showInstalledBadge(true);
+    });
+
+    // 7) iOS/Safari no dispara beforeinstallprompt: mostramos instrucciones manuales
+    if (isIos() && !isRunningStandalone() && localStorage.getItem(STORAGE_KEY) !== 'true') {
+        const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+        const daysSinceDismiss = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
+        if (!dismissedAt || daysSinceDismiss >= 3) {
+            installTitle.textContent = 'Instala Frost Seahorse';
+            installSubtitle.textContent = 'Toca compartir 📤 y luego "Agregar a inicio".';
+            installBtn.textContent = 'Entendido';
+            setTimeout(showBanner, 1200);
+        }
+    }
+})();
 </script>
 
 </body>
