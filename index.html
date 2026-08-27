@@ -21,6 +21,7 @@
             /* Evita el "bounce"/zoom raro de Safari iOS y usa el alto real
                visible del navegador móvil (barra de direcciones incluida) */
             height: 100%;
+            overflow: hidden;
         }
         body {
             margin: 0;
@@ -30,7 +31,17 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* "100vh" en Chrome/Android mide el alto "grande" (como si la
+               barra de direcciones estuviera oculta), que puede ser mayor
+               al alto realmente visible cuando esa barra SÍ está mostrándose.
+               Eso hacía que el body completo (y con él, el juego) quedara
+               más alto que la pantalla, forzando un scroll de página que
+               dejaba la barra de direcciones tapando el juego a la mitad.
+               "100dvh" (alto de viewport dinámico) sí sigue el alto visible
+               real en cada momento; se deja "100vh" antes como respaldo
+               para navegadores que no soporten "dvh". */
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             color: white;
             touch-action: manipulation;
@@ -3257,7 +3268,7 @@
     //    sube este número (y el CACHE_VERSION de sw.js, aunque no es
     //    obligatorio que coincidan exactamente).
     // ============================================================
-    const APP_VERSION = 'v8';
+    const APP_VERSION = 'v9';
     const VERSION_KEY = 'frostSeahorseAppVersion';
 
     function forceFreshStart(callback) {
