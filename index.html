@@ -261,10 +261,26 @@
             background: rgba(5, 11, 20, 0.9);
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            /* flex-start + padding en vez de "center": si el contenido
+               (título + puntaje grande + records + top5 + botón) es más
+               alto que el contenedor, "center" lo recorta por igual
+               arriba y abajo (título y botón cortados). Con flex-start
+               y overflow-y:auto, siempre se puede hacer scroll para ver
+               todo completo, y cuando el contenido SÍ entra se ve igual
+               de centrado gracias al padding simétrico. */
+            justify-content: flex-start;
             align-items: center;
             text-align: center;
+            padding: 24px 0;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
             z-index: 10;
+        }
+        #start-screen::-webkit-scrollbar {
+            display: none;
         }
         h1 {
             color: #38bdf8;
@@ -307,10 +323,10 @@
         }
         .record-score-big {
             display: inline-block;
-            margin: 14px 0 6px;
-            padding: 8px 30px;
+            margin: 8px 0 4px;
+            padding: 6px 26px;
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            font-size: clamp(30px, 10vw, 46px);
+            font-size: clamp(28px, 9vw, 42px);
             font-weight: 800;
             letter-spacing: 1px;
             line-height: 1;
@@ -3238,7 +3254,7 @@
     //    sube este número (y el CACHE_VERSION de sw.js, aunque no es
     //    obligatorio que coincidan exactamente).
     // ============================================================
-    const APP_VERSION = 'v4';
+    const APP_VERSION = 'v5';
     const VERSION_KEY = 'frostSeahorseAppVersion';
 
     function forceFreshStart(callback) {

@@ -2,7 +2,7 @@
 // IMPORTANTE: sube este número CADA VEZ que publiques cambios (junto con
 // APP_VERSION en index.html). Esto es lo que dispara la limpieza automática
 // de caché en el celular de los usuarios sin que tengan que borrar cookies.
-const CACHE_VERSION = 'frost-seahorse-v4';
+const CACHE_VERSION = 'frost-seahorse-v5';
 const APP_SHELL = [
   './',
   './index.html',
