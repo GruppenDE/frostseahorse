@@ -17,6 +17,11 @@
     <meta name="mobile-web-app-capable" content="yes">
 
     <style>
+        html, body {
+            /* Evita el "bounce"/zoom raro de Safari iOS y usa el alto real
+               visible del navegador móvil (barra de direcciones incluida) */
+            height: 100%;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -28,6 +33,7 @@
             height: 100vh;
             overflow: hidden;
             color: white;
+            touch-action: manipulation;
         }
         #game-container {
             position: relative;
@@ -38,8 +44,16 @@
             border-radius: 10px;
             overflow: hidden;
             background: linear-gradient(to bottom, #050b14, #0f172a);
+            /* El tamaño interno del juego se mantiene siempre en 400x600
+               (todos los paneles, HUD, etc. están posicionados en base a
+               eso). En pantallas más chicas, este contenedor se ESCALA
+               como bloque completo vía JS (ver script "responsiveScale"
+               al final del body), en vez de recalcular cada elemento. */
+            transform-origin: center center;
+            flex-shrink: 0;
         }
         canvas {
+
             display: block;
             width: 100%;
             height: 100%;
@@ -3224,7 +3238,7 @@
     //    sube este número (y el CACHE_VERSION de sw.js, aunque no es
     //    obligatorio que coincidan exactamente).
     // ============================================================
-    const APP_VERSION = 'v3';
+    const APP_VERSION = 'v4';
     const VERSION_KEY = 'frostSeahorseAppVersion';
 
     function forceFreshStart(callback) {
@@ -3407,10 +3421,44 @@
 })();
 </script>
 
+<!-- Escalado responsivo: mantiene el juego (400x600 internos) intacto,
+     pero lo ajusta como bloque completo para que quepa en cualquier
+     pantalla sin cortarse ni desbordarse, tanto en móvil como en desktop. -->
+<script>
+(function () {
+    const container = document.getElementById('game-container');
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 600;
+    const EDGE_MARGIN = 12; // pequeño respiro para que no toque los bordes de la pantalla
+
+    function applyResponsiveScale() {
+        // innerWidth/innerHeight (en vez de vw/vh) para reflejar el alto
+        // real disponible en móvil, incluyendo cuando la barra de
+        // direcciones del navegador aparece/desaparece.
+        const availableWidth = window.innerWidth - EDGE_MARGIN * 2;
+        const availableHeight = window.innerHeight - EDGE_MARGIN * 2;
+
+        const scale = Math.min(
+            availableWidth / GAME_WIDTH,
+            availableHeight / GAME_HEIGHT,
+            1 // nunca lo agrandamos más allá de su tamaño original de diseño
+        );
+
+        container.style.transform = `scale(${scale})`;
+    }
+
+    applyResponsiveScale();
+    window.addEventListener('resize', applyResponsiveScale);
+    window.addEventListener('orientationchange', () => setTimeout(applyResponsiveScale, 50));
+
+    // En móvil, la barra de direcciones se oculta/muestra al hacer scroll,
+    // lo que cambia window.innerHeight sin disparar siempre "resize".
+    // visualViewport cubre ese caso con más precisión.
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', applyResponsiveScale);
+    }
+})();
+</script>
+
 </body>
-<style>html{
- color:darkviolet;
- font-size:25px;
- font-weight:600;
-}
-</style><script>/*Here write your javascript code*/</script></html>
+</html>
