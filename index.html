@@ -3209,10 +3209,52 @@
     let deferredPrompt = null;
 
     // 1) Registrar el service worker (necesario para poder instalar la PWA)
+    //    updateViaCache: 'none' evita que el navegador cachee el propio sw.js,
+    //    para que detecte cambios de versión de inmediato en cada carga.
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').catch((err) => {
-                console.warn('No se pudo registrar el service worker:', err);
+            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+                .then((registration) => {
+                    // Revisa si hay una versión nueva del sw.js apenas carga la página
+                    registration.update().catch(() => {});
+
+                    // Si detecta un service worker nuevo instalándose, en cuanto
+                    // termine de instalar le pedimos que se active de inmediato
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (!newWorker) return;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                newWorker.postMessage('SKIP_WAITING');
+                            }
+                        });
+                    });
+
+                    // Revisa periódicamente por si el usuario deja la pestaña abierta mucho tiempo
+                    setInterval(() => registration.update().catch(() => {}), 60 * 1000);
+                })
+                .catch((err) => {
+                    console.warn('No se pudo registrar el service worker:', err);
+                });
+
+            // Cuando el nuevo service worker toma el control (o nos avisa
+            // por mensaje que ya está activo), recargamos la pestaña una
+            // sola vez para que el usuario vea el cambio sin hacer nada.
+            // (Ojo: "controllerchange" también se dispara en la primerísima
+            // instalación, así que solo recargamos si ya había un controller
+            // antes, es decir, si es realmente una actualización.)
+            const hadControllerFromStart = !!navigator.serviceWorker.controller;
+            let hasReloaded = false;
+            const reloadOnce = () => {
+                if (hasReloaded) return;
+                hasReloaded = true;
+                window.location.reload();
+            };
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadControllerFromStart) reloadOnce();
+            });
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SW_UPDATED') reloadOnce();
             });
         });
     }

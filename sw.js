@@ -1,6 +1,6 @@
 // Service Worker de Frost Seahorse
 // Sube la versión del cache cada vez que publiques cambios importantes en el juego.
-const CACHE_VERSION = 'frost-seahorse-v1';
+const CACHE_VERSION = 'frost-seahorse-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -19,7 +19,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activación: limpia caches de versiones anteriores
+// Activación: limpia caches de versiones anteriores y toma control inmediato
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -29,7 +29,20 @@ self.addEventListener('activate', (event) => {
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
+     .then(() => {
+        // Avisa a todas las pestañas abiertas que hay una versión nueva activa
+        return self.clients.matchAll({ type: 'window' }).then((clients) => {
+          clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }));
+        });
+     })
   );
+});
+
+// Permite forzar la activación inmediata desde la página (mensaje "SKIP_WAITING")
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch: solo intercepta peticiones del mismo origen (el juego en sí).
@@ -43,9 +56,11 @@ self.addEventListener('fetch', (event) => {
   if (!isSameOrigin) return; // deja pasar firebase/firestore/etc. tal cual
 
   if (isNavigation) {
-    // Network-first para la navegación, con fallback a cache si no hay internet
+    // Network-first para la navegación, forzando bypass del cache HTTP
+    // (GitHub Pages cachea ~10 min por defecto; sin "no-store" seguirías
+    // viendo la versión vieja aunque la estrategia sea "network-first").
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-store' })
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put('./index.html', clone));
@@ -56,14 +71,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first para el resto de assets propios (iconos, manifest, etc.)
+  // Stale-while-revalidate para el resto de assets propios (iconos, manifest, etc.):
+  // responde rápido con lo cacheado, pero siempre revisa la red en segundo plano
+  // y actualiza el cache, así la próxima visita ya trae lo nuevo sin esperar
+  // a que expire manualmente el CACHE_VERSION.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
+      const networkFetch = fetch(event.request, { cache: 'no-store' }).then((response) => {
         const clone = response.clone();
         caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, clone));
         return response;
       }).catch(() => cached);
+      return cached || networkFetch;
     })
   );
 });
